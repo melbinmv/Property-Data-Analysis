@@ -123,6 +123,13 @@ uk-property-analysis/
 ---
 
 ## 🗄️ Database Schema
+
+> **Note:** This project was originally designed and implemented using 
+> **Azure SQL Database and Azure Synapse Analytics** for cloud-scale 
+> data storage and processing. Due to Azure free credit limitations 
+> during development, the database layer was migrated to **SQLite** 
+> as a lightweight local alternative, while maintaining the same 
+> star schema design, SQL logic and table structure throughout.
                 ┌─────────────────┐
                 │  DimensionDate  │
                 │─────────────────│
@@ -204,71 +211,6 @@ uk-property-analysis/
 
 ---
 
-## 🛠️ Tech Stack
-
-| Tool | Purpose |
-|---|---|
-| Python 3.x | Core programming language |
-| Pandas | Data manipulation and transformation |
-| NumPy | Statistical analysis and calculations |
-| Scikit-learn | Regression modelling |
-| Matplotlib / Seaborn | Data visualisation |
-| SQLite | Star schema database |
-| Requests | API calls and CSV downloads |
-| Regex | Address standardisation |
-| Google Colab | Cloud notebook environment |
-
----
-
-## ⚙️ How To Run
-
-### 1. Clone The Repository
-```bash
-git clone https://github.com/melbinm/uk-property-analysis.git
-cd uk-property-analysis
-### 2. Install Dependencies
-bash
-pip install -r requirements.txt
-3. Run The Notebook
-Open notebooks/Land_Registry_Analysis.ipynb in:
-
-Google Colab (recommended)
-Jupyter Notebook
-VS Code with Jupyter extension
-4. The Pipeline Will Automatically
-text
-✅ Call the data.gov.uk API
-✅ Download Land Registry CSV files
-✅ Clean and transform the data
-✅ Run statistical analysis
-✅ Build regression model
-✅ Generate time series forecast
-✅ Load to SQLite database
-✅ Export Power BI ready files
-📦 Requirements
-txt
-pandas>=1.5.0
-numpy>=1.23.0
-scikit-learn>=1.1.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-requests>=2.28.0
-psutil>=5.9.0
-⚠️ Memory Requirements
-text
-This dataset is large
-Recommended minimum RAM: 8GB
-
-The pipeline uses:
-  ✅ Chunked file loading
-  ✅ Data type optimisation
-  ✅ Garbage collection between steps
-  ✅ 50,000 row sampling per year
-
-Tested on Google Colab free tier (12GB RAM)
-using 5 selected years only
-📁 Data Source
-HM Land Registry - Price Paid Data
 
 Source: data.gov.uk
 API: https://data.gov.uk/api/action/package_search
@@ -277,23 +219,7 @@ Licence: Open Government Licence v3.0
 Contains HM Land Registry data © Crown copyright and database right 2024.
 This data is licensed under the Open Government Licence v3.0.
 
-🔮 Future Improvements
- Extend to 2018-2024 data when available
- Add Azure SQL Database instead of SQLite
- Implement PySpark for distributed processing
- Add Random Forest model to improve R² score
- Include postcode-level geographic analysis
- Build Power BI dashboard
- Add automated pipeline scheduling
- Deploy to Azure Databricks
-👤 Author
-Your Name
 
-LinkedIn: linkedin.com/in/yourprofile
-GitHub: github.com/yourusername
-📄 Licence
-This project is licensed under the MIT Licence.
-See LICENSE for details.
 
 Built as part of a data engineering portfolio project
 demonstrating end-to-end ETL pipeline development,
