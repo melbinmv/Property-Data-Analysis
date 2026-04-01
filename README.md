@@ -39,45 +39,6 @@ quantify relationships between property investment drivers.
 
 ---
 
-## 🗂️ Project Structure
-uk-property-analysis/
-│
-├── notebooks/
-│ └── Land_Registry_Analysis.ipynb # Main analysis notebook
-│
-├── data/
-│ ├── price_paid_1997.csv # Raw downloaded files
-│ ├── price_paid_2003.csv
-│ ├── price_paid_2008.csv
-│ ├── price_paid_2013.csv
-│ └── price_paid_2017.csv
-│
-├── outputs/
-│ ├── database/
-│ │ └── price_paid_data.db # SQLite star schema database
-│ │
-│ ├── charts/
-│ │ ├── price_distribution_analysis.png
-│ │ ├── regression_actual_vs_predicted.png
-│ │ ├── regression_by_price_band.png
-│ │ ├── regression_diagnostics.png
-│ │ └── time_series_analysis.png
-│ │
-│ └── exports/
-│ ├── data_quality_report.csv
-│ ├── regression_results.csv
-│ ├── monthly_price_trends.csv
-│ ├── powerbi_avg_price_by_city.csv
-│ ├── powerbi_monthly_trends.csv
-│ ├── powerbi_price_by_property_type.csv
-│ ├── powerbi_regression_results.csv
-│ └── powerbi_yearly_trend.csv
-│
-├── requirements.txt
-└── README.md
-
----
-
 ## 🔄 Pipeline Architecture
 ┌─────────────────────────────────────────────────────┐
 │ EXTRACT │
