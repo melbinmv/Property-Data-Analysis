@@ -1,1 +1,301 @@
-# Property-Data-Analysis
+# 🏠 UK Property Market Analysis Pipeline
+### Land Registry Price Paid Data | 1997 - 2017
+
+---
+
+## 📋 Project Overview
+
+An end-to-end data engineering and analytics pipeline built to extract, 
+transform, analyse and load UK residential property transaction data 
+from the HM Land Registry Price Paid dataset.
+
+The project covers 20 years of property market data (1997-2017) across 
+5 key market periods, implementing statistical analysis, regression 
+modelling and time series forecasting to identify market trends and 
+quantify relationships between property investment drivers.
+
+---
+
+## 🎯 Key Findings
+
+- **275% price growth** between 1997 and 2017
+  - 1997 median price: £60,000
+  - 2017 median price: £225,000
+
+- **Annual growth rate** of ~5.9% per year (regression coefficient)
+
+- **Property type impact** on price (strongest to weakest):
+  - Detached → Semi-Detached → Terraced → Flat
+
+- **Freehold premium** of ~27.6% over leasehold properties
+
+- **New build premium** of ~12% over existing properties
+
+- **Growing market inequality** - price spread between cheap 
+  and expensive properties widened every year 1997-2017
+
+- **Regression R² of 0.35** using property type, tenure, 
+  age and year - location accounts for remaining variance
+
+---
+
+## 🗂️ Project Structure
+uk-property-analysis/
+│
+├── notebooks/
+│ └── Land_Registry_Analysis.ipynb # Main analysis notebook
+│
+├── data/
+│ ├── price_paid_1997.csv # Raw downloaded files
+│ ├── price_paid_2003.csv
+│ ├── price_paid_2008.csv
+│ ├── price_paid_2013.csv
+│ └── price_paid_2017.csv
+│
+├── outputs/
+│ ├── database/
+│ │ └── price_paid_data.db # SQLite star schema database
+│ │
+│ ├── charts/
+│ │ ├── price_distribution_analysis.png
+│ │ ├── regression_actual_vs_predicted.png
+│ │ ├── regression_by_price_band.png
+│ │ ├── regression_diagnostics.png
+│ │ └── time_series_analysis.png
+│ │
+│ └── exports/
+│ ├── data_quality_report.csv
+│ ├── regression_results.csv
+│ ├── monthly_price_trends.csv
+│ ├── powerbi_avg_price_by_city.csv
+│ ├── powerbi_monthly_trends.csv
+│ ├── powerbi_price_by_property_type.csv
+│ ├── powerbi_regression_results.csv
+│ └── powerbi_yearly_trend.csv
+│
+├── requirements.txt
+└── README.md
+
+---
+
+## 🔄 Pipeline Architecture
+┌─────────────────────────────────────────────────────┐
+│ EXTRACT │
+│ │
+│ data.gov.uk API → Year-Named CSV Files │
+│ 1997, 2003, 2008, 2013, 2017 │
+│ Chunked loading → Memory safe ingestion │
+└──────────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────┐
+│ TRANSFORM │
+│ │
+│ Data Type Optimisation (89MB → ~45MB) │
+│ KPI Quality Validation │
+│ Null Value Handling │
+│ Duplicate Removal (19,265 removed) │
+│ Outlier Detection (IQR + Business Logic) │
+│ Address Standardisation │
+│ Statistical Analysis (NumPy) │
+│ Dimension Table Build (Star Schema) │
+└──────────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────┐
+│ ANALYSE │
+│ │
+│ Regression Analysis (sklearn LinearRegression) │
+│ Time Series Modelling (Rolling avg + polyfit) │
+│ Price Forecasting (6-month horizon) │
+│ Distribution Analysis (Log-normal transformation)│
+└──────────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────┐
+│ LOAD │
+│ │
+│ SQLite Star Schema Database │
+│ Power BI Ready CSV Exports │
+│ Chart Outputs (PNG) │
+└─────────────────────────────────────────────────────┘
+
+---
+
+## 🗄️ Database Schema
+                ┌─────────────────┐
+                │  DimensionDate  │
+                │─────────────────│
+                │ DateId    (PK)  │
+                │ TransactionId   │
+                │ DateofTransfer  │
+                │ Day             │
+                │ Month           │
+                │ Year            │
+                │ Quarter         │
+                └────────┬────────┘
+                         │┌──────────────────┐ │ ┌───────────────────────┐
+│ DimensionAddress │ │ │ DimensionPropertyType │
+│──────────────────│ │ │───────────────────────│
+│ AddressId (PK) │ │ │ PropertyTypeId (PK) │
+│ TransactionId │ │ │ TransactionId │
+│ PAON ├────┐ │ ┌────┤ PropertyType │
+│ SAON │ │ │ │ │ PropertyAge │
+│ Street │ │ │ │ │ Tenure │
+│ Locality │ │ │ │ └───────────────────────┘
+│ Town_City │ │ │ │
+│ County │ ▼ ▼ ▼
+│ Postcode │ ┌────────────────────────────┐
+└──────────────────┘ │ FactPropertyTransactions │
+│────────────────────────────│
+┌──────────────────┐ │ TransactionId (PK) │
+│DimensionPPDCateg │ │ Price │
+│──────────────────│ │ DateId (FK) │
+│ PPDCategoryId(PK)├──┤ PropertyTypeId (FK) │
+│ TransactionId │ │ AddressId (FK) │
+│ PPDCategory │ │ PPDCategoryId (FK) │
+└──────────────────┘ └────────────────────────────┘
+
+---
+
+## 📊 Analysis Results
+
+### Statistical Summary
+
+| Metric | Value |
+|---|---|
+| Total Records Analysed | ~349,000 |
+| Years Covered | 1997, 2003, 2008, 2013, 2017 |
+| Mean Price | £237,375 |
+| Median Price | £162,000 |
+| Price Range | £5,000 - £10,000,000 |
+| Outliers Removed | < 0.5% |
+
+### Year on Year Median Prices
+
+| Year | Median Price | Growth |
+|---|---|---|
+| 1997 | £60,000 | Baseline |
+| 2003 | £130,000 | +116.7% |
+| 2008 | £170,000 | +30.8% |
+| 2013 | £184,000 | +8.2% |
+| 2017 | £225,000 | +22.3% |
+
+### Regression Model Performance
+
+| Metric | Value |
+|---|---|
+| Model | Linear Regression |
+| Target Variable | Log(Price) |
+| Features | Property Type, Tenure, Age, Year |
+| R² Score | 0.3541 |
+| Training Samples | 279,204 |
+| Testing Samples | 69,802 |
+
+### Data Quality Report
+
+| Check | Result |
+|---|---|
+| Duplicate Transactions | 19,265 removed (part file overlaps) |
+| Missing Postcodes | Removed |
+| Price Errors (< £5K) | Removed |
+| Extreme Outliers (> £10M) | Removed |
+| Final Data Quality | ✅ PASS |
+
+---
+
+## 🛠️ Tech Stack
+
+| Tool | Purpose |
+|---|---|
+| Python 3.x | Core programming language |
+| Pandas | Data manipulation and transformation |
+| NumPy | Statistical analysis and calculations |
+| Scikit-learn | Regression modelling |
+| Matplotlib / Seaborn | Data visualisation |
+| SQLite | Star schema database |
+| Requests | API calls and CSV downloads |
+| Regex | Address standardisation |
+| Google Colab | Cloud notebook environment |
+
+---
+
+## ⚙️ How To Run
+
+### 1. Clone The Repository
+```bash
+git clone https://github.com/melbinm/uk-property-analysis.git
+cd uk-property-analysis
+### 2. Install Dependencies
+bash
+pip install -r requirements.txt
+3. Run The Notebook
+Open notebooks/Land_Registry_Analysis.ipynb in:
+
+Google Colab (recommended)
+Jupyter Notebook
+VS Code with Jupyter extension
+4. The Pipeline Will Automatically
+text
+✅ Call the data.gov.uk API
+✅ Download Land Registry CSV files
+✅ Clean and transform the data
+✅ Run statistical analysis
+✅ Build regression model
+✅ Generate time series forecast
+✅ Load to SQLite database
+✅ Export Power BI ready files
+📦 Requirements
+txt
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.1.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+requests>=2.28.0
+psutil>=5.9.0
+⚠️ Memory Requirements
+text
+This dataset is large
+Recommended minimum RAM: 8GB
+
+The pipeline uses:
+  ✅ Chunked file loading
+  ✅ Data type optimisation
+  ✅ Garbage collection between steps
+  ✅ 50,000 row sampling per year
+
+Tested on Google Colab free tier (12GB RAM)
+using 5 selected years only
+📁 Data Source
+HM Land Registry - Price Paid Data
+
+Source: data.gov.uk
+API: https://data.gov.uk/api/action/package_search
+Coverage: England and Wales residential properties
+Licence: Open Government Licence v3.0
+Contains HM Land Registry data © Crown copyright and database right 2024.
+This data is licensed under the Open Government Licence v3.0.
+
+🔮 Future Improvements
+ Extend to 2018-2024 data when available
+ Add Azure SQL Database instead of SQLite
+ Implement PySpark for distributed processing
+ Add Random Forest model to improve R² score
+ Include postcode-level geographic analysis
+ Build Power BI dashboard
+ Add automated pipeline scheduling
+ Deploy to Azure Databricks
+👤 Author
+Your Name
+
+LinkedIn: linkedin.com/in/yourprofile
+GitHub: github.com/yourusername
+📄 Licence
+This project is licensed under the MIT Licence.
+See LICENSE for details.
+
+Built as part of a data engineering portfolio project
+demonstrating end-to-end ETL pipeline development,
+statistical analysis and machine learning on real
+government property transaction data.
