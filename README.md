@@ -40,49 +40,46 @@ quantify relationships between property investment drivers.
 ---
 
 ## 🔄 Pipeline Architecture
-┌─────────────────────────────────────────────────────┐
-│ EXTRACT │
-│ │
-│ data.gov.uk API → Year-Named CSV Files │
-│ 1997, 2003, 2008, 2013, 2017 │
-│ Chunked loading → Memory safe ingestion │
-└──────────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────┐
-│ TRANSFORM │
-│ │
-│ Data Type Optimisation (89MB → ~45MB) │
-│ KPI Quality Validation │
-│ Null Value Handling │
-│ Duplicate Removal (19,265 removed) │
-│ Outlier Detection (IQR + Business Logic) │
-│ Address Standardisation │
-│ Statistical Analysis (NumPy) │
-│ Dimension Table Build (Star Schema) │
-└──────────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────┐
-│ ANALYSE │
-│ │
-│ Regression Analysis (sklearn LinearRegression) │
-│ Time Series Modelling (Rolling avg + polyfit) │
-│ Price Forecasting (6-month horizon) │
-│ Distribution Analysis (Log-normal transformation)│
-└──────────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────┐
-│ LOAD │
-│ │
-│ SQLite Star Schema Database │
-│ Power BI Ready CSV Exports │
-│ Chart Outputs (PNG) │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[🌐 data.gov.uk API] -->|HTTP Request| B[Package Search]
+    B -->|Filter Price Paid CSVs| C[Download Year-Named CSVs]
+    C --> D[price_paid_1997.csv]
+    C --> E[price_paid_2003.csv]
+    C --> F[price_paid_2008.csv]
+    C --> G[price_paid_2013.csv]
+    C --> H[price_paid_2017.csv]
 
----
+    D & E & F & G & H -->|Chunked Loading| I[🐼 Pandas DataFrame]
 
+    subgraph TRANSFORM
+        I --> J[Data Type Optimisation]
+        J --> K[KPI Quality Validation]
+        K --> L[Null Value Handling]
+        L --> M[Duplicate Removal]
+        M --> N[Outlier Detection]
+        N --> O[Address Standardisation]
+        O --> P[NumPy Statistical Analysis]
+    end
+
+    subgraph ANALYSE
+        P --> Q[Regression Analysis]
+        P --> R[Time Series Modelling]
+        P --> S[Price Forecasting]
+        P --> T[Distribution Analysis]
+    end
+
+    subgraph LOAD
+        Q & R & S & T --> U[Build Dimension Tables]
+        U --> V[(SQLite Database)]
+        U --> W[Power BI CSV Exports]
+        U --> X[PNG Chart Outputs]
+    end
+
+    style TRANSFORM fill:#dbeafe,stroke:#3b82f6
+    style ANALYSE fill:#dcfce7,stroke:#22c55e
+    style LOAD fill:#fef9c3,stroke:#eab308
+```
 ## 🗄️ Database Schema
 
 > **Note:** This project was originally designed and implemented using 
@@ -91,40 +88,58 @@ quantify relationships between property investment drivers.
 > during development, the database layer was migrated to **SQLite** 
 > as a lightweight local alternative, while maintaining the same 
 > star schema design, SQL logic and table structure throughout.
-                ┌─────────────────┐
-                │  DimensionDate  │
-                │─────────────────│
-                │ DateId    (PK)  │
-                │ TransactionId   │
-                │ DateofTransfer  │
-                │ Day             │
-                │ Month           │
-                │ Year            │
-                │ Quarter         │
-                └────────┬────────┘
-                         │┌──────────────────┐ │ ┌───────────────────────┐
-│ DimensionAddress │ │ │ DimensionPropertyType │
-│──────────────────│ │ │───────────────────────│
-│ AddressId (PK) │ │ │ PropertyTypeId (PK) │
-│ TransactionId │ │ │ TransactionId │
-│ PAON ├────┐ │ ┌────┤ PropertyType │
-│ SAON │ │ │ │ │ PropertyAge │
-│ Street │ │ │ │ │ Tenure │
-│ Locality │ │ │ │ └───────────────────────┘
-│ Town_City │ │ │ │
-│ County │ ▼ ▼ ▼
-│ Postcode │ ┌────────────────────────────┐
-└──────────────────┘ │ FactPropertyTransactions │
-│────────────────────────────│
-┌──────────────────┐ │ TransactionId (PK) │
-│DimensionPPDCateg │ │ Price │
-│──────────────────│ │ DateId (FK) │
-│ PPDCategoryId(PK)├──┤ PropertyTypeId (FK) │
-│ TransactionId │ │ AddressId (FK) │
-│ PPDCategory │ │ PPDCategoryId (FK) │
-└──────────────────┘ └────────────────────────────┘
+```mermaid
+erDiagram
+    FactPropertyTransactions {
+        TEXT TransactionId PK
+        REAL Price
+        INTEGER DateId FK
+        INTEGER PropertyTypeId FK
+        INTEGER AddressId FK
+        INTEGER PPDCategoryId FK
+    }
 
----
+    DimensionDate {
+        INTEGER DateId PK
+        TEXT TransactionId
+        DATE DateofTransfer
+        INTEGER Year
+        INTEGER Month
+        INTEGER Day
+        INTEGER Quarter
+    }
+
+    DimensionAddress {
+        INTEGER AddressId PK
+        TEXT TransactionId
+        TEXT PAON
+        TEXT SAON
+        TEXT Street
+        TEXT Locality
+        TEXT Town_City
+        TEXT County
+        TEXT Postcode
+    }
+
+    DimensionPropertyType {
+        INTEGER PropertyTypeId PK
+        TEXT TransactionId
+        TEXT PropertyType
+        TEXT PropertyAge
+        TEXT Tenure
+    }
+
+    DimensionPPDCategory {
+        INTEGER PPDCategoryId PK
+        TEXT TransactionId
+        TEXT PPDCategory
+    }
+
+    FactPropertyTransactions ||--o{ DimensionDate         : "DateId"
+    FactPropertyTransactions ||--o{ DimensionAddress      : "AddressId"
+    FactPropertyTransactions ||--o{ DimensionPropertyType : "PropertyTypeId"
+    FactPropertyTransactions ||--o{ DimensionPPDCategory  : "PPDCategoryId"
+```          
 
 ## 📊 Analysis Results
 
@@ -171,7 +186,24 @@ quantify relationships between property investment drivers.
 | Final Data Quality | ✅ PASS |
 
 ---
+## 🔮 Future Improvements
 
+> **Note:** This project was originally designed and implemented using 
+> **Azure SQL Database and Azure Synapse Analytics** for cloud-scale 
+> data storage and processing. Due to Azure free credit limitations 
+> during development, the database layer was migrated to **SQLite** 
+> as a lightweight local alternative, while maintaining the same 
+> star schema design, SQL logic and table structure throughout.
+
+- [ ] Extend to 2018-2024 data when available
+- [ ] Restore Azure SQL Database connection when credits available
+- [ ] Re-deploy pipeline to Azure Synapse Analytics
+- [ ] Migrate SQLite star schema back to Azure cloud environment
+- [ ] Implement PySpark for distributed processing
+- [ ] Add Random Forest model to improve R² score
+- [ ] Include postcode-level geographic analysis
+- [ ] Add automated pipeline scheduling
+- [ ] Deploy to Azure Databricks
 
 Source: data.gov.uk
 API: https://data.gov.uk/api/action/package_search
